@@ -8,4 +8,8 @@ dist/
 .agents/skills/skill-creator/
 
 # Config local de sesion, no es parte del proyecto
-.claude/
+.claude/*
+
+# Excepcion: los subagentes de proyecto si se versionan (recomendado
+# por la doc de Claude Code para .claude/agents/).
+!.claude/agents
