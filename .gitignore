@@ -13,3 +13,12 @@ dist/
 # Excepcion: los subagentes de proyecto si se versionan (recomendado
 # por la doc de Claude Code para .claude/agents/).
 !.claude/agents
+
+# Excepcion: la skill de orquestacion de planeacion si se versiona,
+# para que este disponible para cualquiera que clone el repo. El resto
+# de .claude/skills/ (skill-creator, specify, brainstorming, workspaces
+# de eval, paquetes .skill) sigue sin versionarse.
+!.claude/skills
+.claude/skills/*
+!.claude/skills/planning-tasks
+!.claude/skills/planning-tasks/**

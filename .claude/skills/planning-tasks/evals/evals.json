@@ -1,0 +1,63 @@
+{
+  "skill_name": "planning-tasks",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "bootstrap-clima-fixture",
+      "prompt": "El spec docs/specs/2026-01-01-test-clima-fixture/ ya tiene requirements.md y design.md aprobados, pero todavia no existe tasks.md. Arma el tasks.md completo para ese spec.",
+      "expected_output": "tasks.md creado en docs/specs/2026-01-01-test-clima-fixture/, con tareas trazables a los 4 criterios de aceptacion de requirements.md (1.1, 2.1, 2.2, 2.3), tabla de Requirements coverage sin huecos, y cada tarea ya iterada (no solo el primer borrador de bootstrap) via llamados secuenciales al subagente planner en modo tarea unica.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "tasks_md_created",
+          "text": "Existe docs/specs/2026-01-01-test-clima-fixture/tasks.md en el output"
+        },
+        {
+          "name": "full_coverage",
+          "text": "La tabla de Requirements coverage mapea las 4 aceptance criteria (1.1, 2.1, 2.2, 2.3) a al menos una tarea cada una, sin huecos"
+        },
+        {
+          "name": "no_implementation_code",
+          "text": "No se creo codigo de implementacion real (ej. src/weather/umbrella.ts) - solo se produjo el plan, nunca codigo"
+        },
+        {
+          "name": "decision_log_untouched",
+          "text": "Decision log y Outcome de cada tarea quedan vacios/placeholder, ninguna tarea se marco [x] sin haberse ejecutado de verdad"
+        },
+        {
+          "name": "sequential_orchestration",
+          "text": "El REPORT.md confirma que los llamados al subagente planner (bootstrap + iteracion por tarea) fueron secuenciales, uno a la vez, nunca en paralelo"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "eval_name": "iterate-pending-mixed-state",
+      "prompt": "El spec docs/specs/2026-09-03-noticias-fuente-rss/ ya tiene un tasks.md con 6 tareas; T1 esta en [x] (Done, ya ejecutada). Segui iterando las tareas que falten hasta terminar el plan.",
+      "expected_output": "T1 permanece intacta (no se reescribe). T2-T6 se iteran secuencialmente, un llamado al planner por tarea, sin lanzar llamados en paralelo. Al final, resumen consolidado con que paso en cada tarea, gaps abiertos, y confirmacion de que el 100% de las tareas pendientes fue iterado.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "t1_unchanged",
+          "text": "La seccion de T1 (Status [x], Decision log, Outcome) queda identica a la version sembrada, sin reescribirse"
+        },
+        {
+          "name": "all_pending_iterated",
+          "text": "T2, T3, T4, T5 y T6 muestran evidencia de haber sido iteradas (un llamado al planner por cada una) en esta corrida"
+        },
+        {
+          "name": "sequential_not_parallel",
+          "text": "Ningun llamado al planner se lanzo en paralelo con otro; el REPORT.md o la secuencia de acciones lo confirma"
+        },
+        {
+          "name": "coverage_intact",
+          "text": "La tabla de Requirements coverage sigue cubriendo los 16 criterios sin huecos nuevos"
+        },
+        {
+          "name": "consolidated_summary",
+          "text": "El resultado final entregado incluye resumen por tarea, gaps abiertos detectados, y confirmacion explicita de que el 100% de las tareas pendientes fue iterado"
+        }
+      ]
+    }
+  ]
+}
