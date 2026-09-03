@@ -6,3 +6,6 @@ dist/
 # Skills instaladas via skills-lock.json: se reinstalan desde ahi, no se versionan.
 # Si agregas otra skill vendorizada, sumala aca.
 .agents/skills/skill-creator/
+
+# Config local de sesion, no es parte del proyecto
+.claude/
