@@ -93,10 +93,12 @@ de aprobarlo.
 
 ## Después de la aprobación
 
-Esta skill termina acá. El siguiente paso del workflow (spec en
-`docs/`, todavía sin skill propia) es escribir el spec siguiendo
-`CLAUDE.md`: brainstorming → definición → **spec (docs/)** → ejecución
-(TDD) → verificación → commit. Si en el futuro se arma una skill de
-"spec" o "writing-plans" para esa etapa, se invoca ahí — por ahora,
-avisale al usuario que el diseño quedó aprobado y que el siguiente
-paso manual es redactar el spec.
+Esta skill termina acá. El siguiente paso del workflow (`CLAUDE.md`:
+brainstorming → definición → **spec (docs/)** → ejecución (TDD) →
+verificación → commit) es formalizar el diseño aprobado como spec.
+Invocá la skill `specify` a continuación, pasándole el diseño aprobado
+como contexto — no repitas el brainstorming ahí ni escribas vos mismo
+`requirements.md` o `design.md` fuera de esa skill. No hace falta
+preguntarle al usuario si quiere seguir: la aprobación del diseño en
+este paso ya es la señal para pasar a `specify`; ese skill tiene sus
+propios gates de aprobación para `requirements.md` y `design.md`.
