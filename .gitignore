@@ -1,0 +1,8 @@
+# Dependencias / build (para cuando arranque el harness de Node)
+node_modules/
+dist/
+.env
+
+# Skills instaladas via skills-lock.json: se reinstalan desde ahi, no se versionan.
+# Si agregas otra skill vendorizada, sumala aca.
+.agents/skills/skill-creator/
