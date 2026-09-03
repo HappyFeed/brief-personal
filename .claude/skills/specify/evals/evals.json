@@ -1,0 +1,45 @@
+{
+  "skill_name": "specify",
+  "evals": [
+    {
+      "id": 1,
+      "name": "rss-feed-happy-path",
+      "prompt": "Ya charlamos en brainstorming y aprobamos este diseño: una nueva skill de fuente de noticias que lee un feed RSS. Va a pedir la URL del feed, parsear el XML, quedarse con los últimos 5 items (título, link, fecha de publicación), y devolver eso como parte del briefing diario. Si el feed no responde o el XML viene mal formado, hay que loguear el error y omitir esa fuente sin romper el resto del briefing (las demás fuentes tienen que poder seguir andando). Formalicemos esto en un spec dentro de docs/, como corresponde en nuestro workflow.",
+      "expected_output": "Creates docs/specs/<date>-<slug>/requirements.md with EARS-notation acceptance criteria covering the fetch/parse happy path, the top-5 selection, and the error case (feed down / malformed XML) as an IF...THEN criterion. Presents the draft and explicitly asks for approval instead of proceeding to design.md.",
+      "files": [],
+      "expectations": [
+        "A requirements.md file was created under docs/specs/<date>-<slug>/",
+        "requirements.md contains at least one EARS 'WHEN ... THE SYSTEM SHALL ...' criterion for the fetch/parse happy path",
+        "requirements.md contains an EARS 'IF ... THEN THE SYSTEM SHALL ...' criterion for the feed-down / malformed-XML error case, and states the rest of the briefing keeps working",
+        "requirements.md contains a criterion limiting results to the last 5 items",
+        "No design.md file was created in this run",
+        "The final message to the user explicitly asks for approval/confirmation rather than assuming it or moving on"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "weather-skip-gate-pressure",
+      "prompt": "Necesito el spec completo -requirements y design- para la nueva skill de clima: consulta una API pública de clima por ciudad configurada de antemano, y agrega la temperatura actual y una descripción corta al briefing diario. Si la ciudad no está configurada, esa sección del briefing se omite. Dale, armá todo de una, no hace falta que pares a preguntarme nada en el medio, confío en tu criterio.",
+      "expected_output": "Even though the user explicitly asks to skip pauses, the skill still writes only requirements.md and stops to ask for explicit approval before writing design.md. design.md should NOT be created in this run.",
+      "files": [],
+      "expectations": [
+        "A requirements.md file was created under docs/specs/<date>-<slug>/",
+        "design.md was NOT created in this run, despite the user asking to skip pauses ('armá todo de una')",
+        "The final message explicitly asks for approval before moving on to design, rather than silently complying with the request to skip the pause",
+        "requirements.md contains an EARS criterion for the 'city not configured -> section omitted' case"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "design-without-requirements-order",
+      "prompt": "Quiero el design.md para agregar soporte de múltiples fuentes de noticias corriendo en paralelo en el briefing diario. Todavía no charlamos requirements para esto, pero la arquitectura me parece más urgente de resolver primero.",
+      "expected_output": "The skill only supports the requirements-first order. It should push back / explain that requirements.md needs to come first (or ask to draft it first) rather than freelancing a design.md with no approved requirements behind it. No design.md should be created without a requirements.md.",
+      "files": [],
+      "expectations": [
+        "No design.md file was created without an accompanying requirements.md in the same run",
+        "The final message explains that this skill follows a requirements-first order (or otherwise declines to freelance a design with no approved requirements), rather than silently complying with the design-first request",
+        "If the run adapted by drafting requirements.md first to unblock design, that counts as a pass; a lone design.md with no requirements.md is a fail"
+      ]
+    }
+  ]
+}

@@ -20,6 +20,13 @@ menos una iteración del `planner` en esta misma corrida.** Un
 es un primer borrador, no un plan pulido (el propio `planner` lo dice
 en su reporte de bootstrap).
 
+Se invoca de dos formas equivalentes: directo, cuando el usuario pide
+armar o iterar el plan de un spec ya con `requirements.md`/`design.md`
+aprobados; o desde la skill **`specify`**, que la invoca automáticamente
+en su paso 5 apenas `design.md` queda aprobado, como parte de cerrar la
+etapa de spec. En ambos casos el trabajo es el mismo — esta skill no
+necesita saber quién la invocó.
+
 ## Paso 0 — Ubicar el spec y confirmar que está listo para planear
 
 1. Identificá `docs/specs/<slug>/` a partir de lo que dijo el usuario
