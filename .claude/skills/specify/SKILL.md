@@ -18,10 +18,11 @@ when all three documents are approved.
 This skill drafts `requirements.md` and `design.md` itself, but does
 **not** draft `tasks.md` directly — once `design.md` is approved, it
 hands off to the **`planning-tasks`** skill, which produces and
-iterates `tasks.md` by launching the `planner` subagent (bootstrap
-once, then one task at a time, sequentially) until every task is
-trazable, right-sized, and contrasted against the real state of the
-code. This skill never writes implementation code itself, and never
+iterates `tasks.md` by invoking the `plan-tasks` dynamic workflow
+(bootstrap once, then batches of tasks — parallel within a batch when
+tasks are independent, one serialized writer per batch) until every
+task is trazable, right-sized, and contrasted against the real state
+of the code. This skill never writes implementation code itself, and never
 drafts `tasks.md` inline — actually executing `tasks.md` is a
 separate, later step, out of scope for both skills.
 
@@ -135,11 +136,13 @@ Same pattern as step 2: ask, iterate, wait for an explicit yes.
 Only after design is approved. Don't draft `tasks.md` yourself — invoke
 the **`planning-tasks`** skill (via the Skill tool) pointed at
 `docs/specs/<slug>/`. That skill reads the now-approved
-`requirements.md`/`design.md`, detects whether `tasks.md` needs a
-bootstrap pass or already has tasks to iterate, and drives the
-`planner` subagent (bootstrap once, then one task at a time,
-sequentially — never in parallel, per `CLAUDE.md`) until every task in
-the plan has been iterated at least once: trazable to a requirement,
+`requirements.md`/`design.md`, and invokes the `plan-tasks` dynamic
+workflow, which detects whether `tasks.md` needs a bootstrap pass or
+already has tasks to iterate, and drives read-only `planner-iterate`
+subagents (in parallel within a batch when tasks are independent; a
+single `tasks-writer` serializes the actual file writes, per
+`CLAUDE.md`) until every task in the plan has been iterated at least
+once: trazable to a requirement,
 right-sized for one TDD cycle, necessary given the real state of the
 code, and correctly ordered by dependency. It never writes
 implementation code, and it leaves **Decision log** and **Outcome**

@@ -27,9 +27,9 @@ La etapa de "spec (docs/)" se resuelve con dos skills, en orden:
   explícito por documento.
 - **`planning-tasks`** — recién cuando `design.md` está aprobado, arma
   (o retoma) `tasks.md` del mismo spec y lo itera tarea por tarea,
-  lanzando el subagente `planner` en modo bootstrap o modo tarea única
-  (siempre secuencial, nunca en paralelo — ver Reglas), hasta dejarlo
-  100% iterado. No escribe código de implementación.
+  invocando el dynamic workflow `plan-tasks`
+  (`.claude/workflows/plan-tasks.js`), hasta dejarlo 100% iterado. No
+  escribe código de implementación.
 
 Recién con las tres piezas del spec aprobadas (incluyendo la
 aprobación final de `tasks.md`) arranca "ejecución (TDD)".
@@ -37,8 +37,17 @@ aprobación final de `tasks.md`) arranca "ejecución (TDD)".
 ## Reglas
 
 - Una skill (fuente de datos) a la vez. No abrir frentes en paralelo —
-  esto también aplica a los subagentes `planner` que lanza
-  `planning-tasks`: uno a la vez, nunca en simultáneo.
+  esto aplica en particular a la etapa de ejecución (TDD): un solo
+  agente escribiendo código de una skill a la vez.
+- Excepción controlada, solo dentro del dynamic workflow
+  `plan-tasks`: los subagentes `planner-iterate` pueden evaluar varias
+  tareas de `tasks.md` en paralelo cuando no dependen entre sí, porque
+  corren de solo lectura (no tienen `Edit`/`Write`) y devuelven su
+  propuesta como dato estructurado en vez de tocar el archivo. La
+  escritura real queda serializada en un único `tasks-writer` por
+  lote, nunca dos escribiendo `tasks.md` al mismo tiempo. Fuera de ese
+  mecanismo, seguí sin lanzar dos subagentes `planner` /
+  `planner-iterate` / `tasks-writer` en simultáneo sobre el mismo spec.
 - TDD: test que falla → implementar → test que pasa.
 - No agregar dependencias sin necesidad.
 - No se escribe código de una skill sin su spec en docs/ ya definida,
