@@ -3,18 +3,34 @@ export const meta = {
   description: 'Bootstrap e itera tasks.md de cualquier spec (docs/specs/<slug>/), iterando en paralelo las tareas sin dependencias entre sí, con un único agente serializado escribiendo el archivo.',
 }
 
-// args: { slug } o el slug como string pelado — docs/specs/<slug>/
-const parsedArgs = typeof args === 'string' ? (() => {
-  try { return JSON.parse(args) } catch { return { slug: args } }
-})() : args
-const slug = parsedArgs?.slug ?? parsedArgs
+// args puede llegar como objeto, como el slug pelado, o (bug documentado del
+// runtime) como un string que en realidad es JSON — normalizamos las tres.
+let parsedArgs = args
+if (typeof parsedArgs === 'string') {
+  const trimmed = parsedArgs.trim()
+  if (trimmed.startsWith('{')) {
+    try { parsedArgs = JSON.parse(trimmed) } catch { /* no era JSON, queda como string */ }
+  }
+}
+const slug = typeof parsedArgs === 'string'
+  ? parsedArgs.trim() || null
+  : (parsedArgs?.slug || parsedArgs?.spec || parsedArgs?.folder || null)
 
-if (!slug || typeof slug !== 'string') {
+if (!slug) {
   log('Falta el slug del spec. Invocar como: /plan-tasks <slug>, donde <slug> es el nombre de docs/specs/<slug>/.')
   return { status: 'blocked', reason: 'missing slug argument' }
 }
 
 const specDir = `docs/specs/${slug}`
+
+// Guardia contra loop infinito, no un presupuesto de tokens: cada ronda
+// avanza como mínimo una capa de dependencias, así que el número real de
+// rondas escala con el largo de la cadena de dependencias más larga del
+// spec, no con la cantidad total de tareas. Para specs chicos de proyecto
+// personal (el único que existe hoy tiene 6 tareas y usó 5 rondas), 40 deja
+// margen de sobra para una cadena mucho más larga que cualquiera real, sin
+// dejar que un bug de "cero progreso por ronda" corra indefinidamente.
+const MAX_ROUNDS = 40
 
 const READY_SCHEMA = {
   type: 'object',
@@ -61,8 +77,8 @@ const ITERATE_SCHEMA = {
 phase('Scout')
 
 const ready = await agent(
-  `Ubicá el spec en ${specDir}. Confirmá que requirements.md y design.md existen y están aprobados (Status: Approved o equivalente). Si falta alguno, o no está aprobado, devolvé ready=false con blockReason explicando qué falta. Si están listos, mirá si tasks.md existe y tiene alguna entrada "### T<N>": si no existe, o existe sin ninguna entrada real, needsBootstrap=true; si ya tiene entradas, needsBootstrap=false. No modifiques ningún archivo.`,
-  { schema: READY_SCHEMA, model: 'haiku', label: 'ready-check' },
+  `Ubicá el spec en ${specDir}. Confirmá que requirements.md y design.md existen y están aprobados (Status: Approved o equivalente). Si falta alguno, o no está aprobado, devolvé ready=false con blockReason explicando qué falta. Si están listos, mirá si tasks.md existe y tiene alguna entrada "### T<N>": si no existe, o existe sin ninguna entrada real, needsBootstrap=true; si ya tiene entradas, needsBootstrap=false.`,
+  { agentType: 'Explore', schema: READY_SCHEMA, model: 'haiku', label: 'ready-check' },
 )
 
 if (!ready || !ready.ready) {
@@ -82,18 +98,20 @@ const seen = new Set() // task IDs ya procesados en esta corrida (incluye splits
 let carryContext = [] // gaps acumulados de lotes anteriores, pendientes de asignar
 let round = 0
 let totalIterated = 0
+let haltReason = null // null = el worklist se vació solo; si no, la corrida se frenó antes de terminar
 
 while (true) {
   round++
-  if (round > 200) {
-    log(`Guardia: ${round} lotes sin vaciar el worklist de ${slug}, freno para no correr sin límite.`)
+  if (round > MAX_ROUNDS) {
+    haltReason = `guardia de ${MAX_ROUNDS} rondas alcanzada`
+    log(`Guardia: ${MAX_ROUNDS} rondas sin vaciar el worklist de ${slug}, freno para no correr sin límite.`)
     break
   }
 
   phase(`Worklist (lote ${round})`)
   const worklist = await agent(
-    `Leé ${specDir}/tasks.md. Devolvé, en el orden en que aparecen en el documento, las tareas que NO están en Status [x] (Done): su id ("T3", "T3a", ...) y su campo "Depends on" tal cual está escrito (lista de ids, vacía si dice "none"). No modifiques nada.`,
-    { schema: WORKLIST_SCHEMA, model: 'haiku', label: `worklist-r${round}` },
+    `Leé ${specDir}/tasks.md. Devolvé, en el orden en que aparecen en el documento, las tareas que NO están en Status [x] (Done): su id ("T3", "T3a", ...) y su campo "Depends on" tal cual está escrito (lista de ids, vacía si dice "none").`,
+    { agentType: 'Explore', schema: WORKLIST_SCHEMA, model: 'haiku', label: `worklist-r${round}` },
   )
 
   // Iterar una tarea no le cambia el Status (sigue [ ] hasta la ejecución
@@ -128,6 +146,7 @@ while (true) {
     log(`Aviso: ${effectiveBatch.length - proposals.length} de ${effectiveBatch.length} llamados del lote ${round} no devolvieron resultado válido.`)
   }
   if (!proposals.length) {
+    haltReason = `lote ${round} (${effectiveBatch.join(', ')}) no produjo ninguna propuesta válida`
     log(`Lote ${round} no produjo ninguna propuesta válida; freno la corrida acá.`)
     break
   }
@@ -151,7 +170,8 @@ log(`${slug}: corrida terminada. ${totalIterated} tarea(s) iteradas en ${round} 
 
 return {
   slug,
-  status: 'iterated',
+  status: haltReason ? 'stopped-early' : 'iterated',
+  haltReason,
   rounds: round,
   totalIterated,
   touchedTaskIds: [...seen],

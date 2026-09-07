@@ -68,15 +68,18 @@ El workflow devuelve un resultado estructurado con `status`:
   aprobados. Mostrale el `reason` al usuario, no insistas ni fuerces
   nada: hay que cerrar esa parte del spec primero (workflow del
   proyecto: brainstorming → definición → spec → ejecución).
-- **`iterated`** — corrida completa. Trae `totalIterated` (cuántas
-  tareas se evaluaron), `touchedTaskIds` (qué IDs tocó, incluyendo
-  splits nuevos), y `unresolvedGaps` (huecos que ningún lote llegó a
-  asignarle a una tarea puntual — normalmente vacío si el worklist se
-  vació limpiamente).
-- Si el workflow se frenó antes de vaciar el worklist (revisá el log
-  de la corrida en `/workflows`), no sigas empujando a la fuerza — lo
-  más probable es que un lote no haya producido una propuesta válida.
-  Mostrale el problema al usuario y esperá indicación.
+- **`iterated`** — corrida completa, el worklist se vació solo. Trae
+  `totalIterated` (cuántas tareas se evaluaron), `touchedTaskIds` (qué
+  IDs tocó, incluyendo splits nuevos), y `unresolvedGaps` (huecos que
+  ningún lote llegó a asignarle a una tarea puntual — normalmente
+  vacío si el worklist se vació limpiamente).
+- **`stopped-early`** — el workflow se frenó antes de vaciar el
+  worklist. El campo `haltReason` dice por qué: un lote sin ninguna
+  propuesta válida, o la guardia de `MAX_ROUNDS` (40 rondas) — esto
+  último es señal de un spec con una cadena de dependencias
+  anormalmente larga, o de un bug real en el loop, no algo a reintentar
+  a ciegas. En cualquier caso no sigas empujando a la fuerza: mostrale
+  `haltReason` y `touchedTaskIds` al usuario y esperá indicación.
 
 Releé `docs/specs/<slug>/tasks.md` después de que el workflow termine
 para confirmar el estado final del documento antes de armar el
