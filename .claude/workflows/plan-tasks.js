@@ -77,7 +77,7 @@ const ITERATE_SCHEMA = {
 phase('Scout')
 
 const ready = await agent(
-  `Ubicá el spec en ${specDir}. Confirmá que requirements.md y design.md existen y están aprobados (Status: Approved o equivalente). Si falta alguno, o no está aprobado, devolvé ready=false con blockReason explicando qué falta. Si están listos, mirá si tasks.md existe y tiene alguna entrada "### T<N>": si no existe, o existe sin ninguna entrada real, needsBootstrap=true; si ya tiene entradas, needsBootstrap=false.`,
+  `Ubicá el spec en ${specDir}. Confirmá que requirements.md y design.md existen y tienen contenido real (no el template vacío de .claude/skills/specify/assets/, que todavía dice "[Feature Name]" o secciones sin completar). Estos dos documentos NUNCA tienen un campo "Status" — la aprobación de requirements/design es un evento de conversación entre el usuario y la skill "specify", no algo que quede escrito en el archivo, así que no busques ninguna marca de "Approved" ahí. Si falta alguno de los dos archivos, o está vacío/es el template sin completar, devolvé ready=false con blockReason explicando qué falta. Si están listos, mirá si tasks.md existe y tiene alguna entrada "### T<N>": si no existe, o existe sin ninguna entrada real, needsBootstrap=true; si ya tiene entradas, needsBootstrap=false.`,
   { agentType: 'Explore', schema: READY_SCHEMA, model: 'haiku', label: 'ready-check' },
 )
 
