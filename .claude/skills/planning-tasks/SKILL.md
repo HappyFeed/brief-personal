@@ -5,119 +5,71 @@ description: Orquesta la fase de planeación de un spec (docs/specs/[slug]/) has
 
 # Planning tasks: cerrar la etapa de spec con un tasks.md 100% iterado
 
-Esta skill es el paso puente entre **spec** (`docs/specs/<slug>/` con
-`requirements.md` y `design.md` ya aprobados) y **ejecución** (TDD,
-tarea por tarea) del workflow del proyecto. Vos no escribís
-`tasks.md` directamente ni tocás código — invocás el dynamic workflow
-`plan-tasks` (`.claude/workflows/plan-tasks.js`), que es quien
-coordina los subagentes con permiso de leer/iterar/escribir el spec.
+Puente entre **spec** (`docs/specs/<slug>/` con `requirements.md` y
+`design.md` ya aprobados) y **ejecución** (TDD, tarea por tarea). Vos
+no escribís `tasks.md` ni tocás código: tu trabajo es asegurar el
+input correcto y lanzar el dynamic workflow `plan-tasks`
+(`.claude/workflows/plan-tasks.js`), que es quien hace bootstrap y/o
+itera las tareas (en paralelo cuando son independientes, escribiendo
+siempre de forma serializada) hasta vaciar el worklist. Se invoca
+directo, o desde `specify` apenas `design.md` queda aprobado — el
+trabajo es el mismo.
 
-La meta de una corrida de esta skill es simple de enunciar y fácil de
-subestimar en el esfuerzo real que toma: **al terminar, cada tarea de
-`tasks.md` que no esté ya `[x]` Done tiene que haber pasado por al
-menos una iteración en esta misma corrida.** Un `tasks.md` recién
-bootstrapeado no cuenta como terminado — bootstrap es un primer
-borrador, no un plan pulido.
+La meta: **al terminar, cada tarea que no esté ya `[x]` Done tiene que
+haber pasado por al menos una iteración en esta corrida.** Un
+`tasks.md` recién bootstrapeado no cuenta como terminado.
 
-Se invoca de dos formas equivalentes: directo, cuando el usuario pide
-armar o iterar el plan de un spec ya con `requirements.md`/`design.md`
-aprobados; o desde la skill **`specify`**, que la invoca automáticamente
-en su paso 5 apenas `design.md` queda aprobado, como parte de cerrar la
-etapa de spec. En ambos casos el trabajo es el mismo — esta skill no
-necesita saber quién la invocó.
+## Paso 1 — Asegurar el input: ubicar el spec
 
-## Cómo está dividido el trabajo
+Identificá `docs/specs/<slug>/` a partir de lo que dijo el usuario. Si
+hay ambigüedad entre varias carpetas, preguntá cuál — es lo único que
+el workflow no puede resolver por sí solo. No hace falta que confirmes
+acá que `requirements.md`/`design.md` existen y están aprobados: el
+workflow lo chequea como primer paso y frena solo si falta algo (ver
+Paso 3).
 
-- **Vos (esta skill)**: identificás el spec, invocás el workflow con
-  el `slug` correcto, interpretás su resultado, y armás el resumen
-  consolidado para el usuario. No decidís bootstrap vs. iterar — eso
-  lo resuelve el propio workflow leyendo `tasks.md`.
-- **El workflow `plan-tasks`**: hace todo el trabajo pesado —
-  confirma que `requirements.md`/`design.md` existen, bootstrapea si
-  hace falta, arma el worklist de tareas pendientes, las agrupa en
-  lotes por dependencia real (tareas sin dependencias entre sí van en
-  el mismo lote y se evalúan en paralelo con `planner-iterate`, de
-  solo lectura), y aplica cada lote a `tasks.md` con un único
-  `tasks-writer` serializado. Repite lote tras lote hasta vaciar el
-  worklist.
-
-## Paso 1 — Ubicar el spec y confirmar el slug
-
-Identificá `docs/specs/<slug>/` a partir de lo que dijo el usuario
-(nombre de la feature, o carpeta explícita). Si hay ambigüedad entre
-varias carpetas de specs, preguntá cuál. No hace falta que vos
-confirmes acá que `requirements.md`/`design.md` existen y están
-aprobados — el workflow lo chequea como primer paso y frena solo si
-falta algo (ver Paso 3).
-
-## Paso 2 — Invocar el workflow
+## Paso 2 — Lanzar el workflow
 
 Corré `/plan-tasks` (o `ultracode: plan-tasks`, según cómo esté
-guardado en este entorno) pasando el `slug` como argumento, por
-ejemplo el spec `docs/specs/2026-09-03-noticias-fuente-rss/` se invoca
-con `slug: "2026-09-03-noticias-fuente-rss"`. Es una sola invocación
-por corrida: el workflow hace bootstrap (si corresponde) y el loop
-completo de iteración internamente, no hace falta relanzarlo por
-tarea.
+guardado en este entorno) pasando el `slug` como argumento — por
+ejemplo `slug: "2026-09-03-noticias-fuente-rss"`. Una sola invocación
+por corrida: el workflow hace bootstrap (si corresponde) y todo el
+loop de iteración internamente, no hace falta relanzarlo por tarea.
 
 ## Paso 3 — Interpretar el resultado
 
-El workflow devuelve un resultado estructurado con `status`:
+El workflow devuelve `status`:
 
-- **`blocked`** — falta `requirements.md` o `design.md`, o no están
-  aprobados. Mostrale el `reason` al usuario, no insistas ni fuerces
-  nada: hay que cerrar esa parte del spec primero (workflow del
-  proyecto: brainstorming → definición → spec → ejecución).
+- **`blocked`** — falta `requirements.md`/`design.md`, o no están
+  aprobados. Mostrale el `reason` al usuario y no insistas: hay que
+  cerrar esa parte del spec primero.
 - **`iterated`** — corrida completa, el worklist se vació solo. Trae
-  `totalIterated` (cuántas tareas se evaluaron), `touchedTaskIds` (qué
-  IDs tocó, incluyendo splits nuevos), y `unresolvedGaps` (huecos que
-  ningún lote llegó a asignarle a una tarea puntual — normalmente
-  vacío si el worklist se vació limpiamente).
-- **`stopped-early`** — el workflow se frenó antes de vaciar el
-  worklist. El campo `haltReason` dice por qué: un lote sin ninguna
-  propuesta válida, o la guardia de `MAX_ROUNDS` (40 rondas) — esto
-  último es señal de un spec con una cadena de dependencias
-  anormalmente larga, o de un bug real en el loop, no algo a reintentar
-  a ciegas. En cualquier caso no sigas empujando a la fuerza: mostrale
+  `totalIterated`, `touchedTaskIds` y `unresolvedGaps`.
+- **`stopped-early`** — se frenó antes de vaciar el worklist.
+  `haltReason` dice por qué (un lote sin propuestas válidas, o la
+  guardia de `MAX_ROUNDS`). No reintentes a ciegas: mostrale
   `haltReason` y `touchedTaskIds` al usuario y esperá indicación.
 
-Releé `docs/specs/<slug>/tasks.md` después de que el workflow termine
-para confirmar el estado final del documento antes de armar el
-resumen del Paso 4.
+Releé `docs/specs/<slug>/tasks.md` antes de armar el resumen del Paso 4.
 
 ## Paso 4 — Resumen consolidado
 
-Armá un resumen para el usuario con:
-
-- **Qué se hizo por tarea** — creada en bootstrap / mantenida igual /
-  redimensionada / partida / fusionada / eliminada por innecesaria,
-  una línea por tarea con el motivo (lo sacás del `tasks.md` final y,
-  si hace falta más detalle, del log de la corrida en `/workflows`).
-- **Gaps que quedaron abiertos** — cualquier entrada de
-  `unresolvedGaps`, o cualquier hueco de cobertura visible en la tabla
-  de Requirements coverage. No los resuelvas vos ni los inventes —
-  son para que el usuario decida.
-- **Confirmación de cobertura** — que la tabla de Requirements
-  coverage de `tasks.md` sigue sin huecos (todo criterio de
-  `requirements.md` mapeado a al menos una tarea).
-- **Confirmación de que el 100% del worklist fue iterado** en esta
-  corrida (o, si el workflow se frenó antes, qué quedó pendiente y
-  por qué).
-- Cerrá dejando claro que iterar no es ejecutar: el siguiente paso
-  natural del workflow es empezar la ejecución TDD por la primera
-  tarea `[ ]` del plan.
+- Qué se hizo por tarea (creada / mantenida / redimensionada / partida
+  / fusionada / eliminada), una línea con el motivo.
+- Gaps abiertos (`unresolvedGaps` o huecos de cobertura) — sin
+  resolverlos ni inventarlos, son para el usuario.
+- Confirmación de que la tabla de Requirements coverage sigue sin
+  huecos.
+- Confirmación de que el 100% del worklist fue iterado (o, si se
+  frenó, qué quedó pendiente y por qué).
+- Cerrá aclarando que iterar no es ejecutar: sigue la ejecución TDD
+  desde la primera tarea `[ ]`.
 
 ## Reglas duras
 
-- Nunca escribís `tasks.md` vos mismo, ni con Edit ni con Write, ni
-  siquiera para "adelantar" un cambio chico. Todo pasa por el workflow
-  `plan-tasks` (que a su vez solo deja escribir al `tasks-writer`).
-- Nunca escribís código de implementación ni le pedís al workflow que
-  lo haga — no es su trabajo (ver reglas duras de
-  `.claude/agents/planner.md` y `.claude/agents/planner-iterate.md`).
-- Si `requirements.md` o `design.md` no existen o no están aprobados
-  todavía, no invocás el workflow a ciegas esperando que falle bonito:
-  si ya lo sabés de antes, decíselo al usuario directamente y listo.
-- No relances el workflow repetidas veces "por las dudas" sobre el
-  mismo spec en la misma corrida si ya devolvió `iterated` con el
-  worklist vacío — eso ya es la corrida completa.
+- Nunca escribís `tasks.md` ni código vos mismo — todo pasa por el
+  workflow.
+- Si `requirements.md`/`design.md` no están aprobados y ya lo sabés,
+  decíselo al usuario en vez de invocar el workflow a ciegas.
+- No relances el workflow sobre el mismo spec en la misma corrida si
+  ya devolvió `iterated` con el worklist vacío.
