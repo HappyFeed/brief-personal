@@ -32,7 +32,7 @@ harness de test todavía.
 ## Task overview
 
 - [x] **T1** — Scaffolding de proyecto + `config.ts`
-- [ ] **T2** — `parseRssXml`: parseo puro de XML RSS
+- [x] **T2** — `parseRssXml`: parseo puro de XML RSS
 - [ ] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
 - [ ] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
 - [ ] **T5** — `renderBriefing`: orden, límite N y HTML por ítem
@@ -108,7 +108,7 @@ de test (`vitest`) funcionando, y `src/config.ts` expone `FEEDS`
 
 ### T2 — `parseRssXml`: parseo puro de XML RSS
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Traces to:** 2.2, 2.3, 2.5 (parcial: parseo de XML inválido no
   lanza) · design.md `src/sources/rss.ts` (`NewsItem`, `parseRssXml`)
 - **Depends on:** T1
@@ -134,9 +134,20 @@ lanzar excepción ante un string vacío o XML malformado.
 
 **Decision log:**
 
-- *(empty until this task is worked on)*
+- Extracción por regex simple (`<item>...</item>` y luego un regex por
+  tag dentro de cada item), con decodificación de CDATA y de las
+  entities XML básicas (`&lt;`, `&gt;`, `&amp;`, `&quot;`, `&#39;`) para
+  que títulos/descripciones con esos caracteres no queden con
+  entities sin resolver. No usa ningún parser DOM/XML real, según Out
+  of Scope de `requirements.md`.
+- `parseRssXml` envuelve todo en try/catch por si el regex matching
+  sobre un input adversarial lanzara, aunque en la práctica los
+  regex usados no lanzan — es defensivo, no porque haya un caso
+  identificado que lo requiera.
 
-**Outcome:** *(fill in when Done)*
+**Outcome:** `src/sources/rss.ts` con `NewsItem` y `parseRssXml`.
+`npm run typecheck` y `npm test` pasan (7 tests verdes en total, 4
+nuevos de `rss.test.ts`).
 
 ### T3 — `fetchFeed`: descarga por HTTP que nunca rechaza
 
