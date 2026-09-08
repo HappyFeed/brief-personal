@@ -63,3 +63,8 @@ export async function fetchFeed(url: string): Promise<NewsItem[]> {
     return []
   }
 }
+
+export async function fetchAllFeeds(urls: string[]): Promise<NewsItem[]> {
+  const results = await Promise.all(urls.map((url) => fetchFeed(url)))
+  return results.flat()
+}

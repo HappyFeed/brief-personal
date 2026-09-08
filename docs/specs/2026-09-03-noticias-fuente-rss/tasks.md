@@ -34,7 +34,7 @@ harness de test todavía.
 - [x] **T1** — Scaffolding de proyecto + `config.ts`
 - [x] **T2** — `parseRssXml`: parseo puro de XML RSS
 - [x] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
-- [ ] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
+- [x] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
 - [ ] **T5** — `renderBriefing`: orden, límite N y HTML por ítem
 - [ ] **T6** — Servidor HTTP + orquestación de arranque
 
@@ -227,7 +227,7 @@ incluyendo el caso de `response.text()` rechazando.
 
 ### T4 — `fetchAllFeeds`: combinación de múltiples feeds
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Traces to:** 1.2 (parcial), 3.1 · design.md `src/sources/rss.ts`
   (`fetchAllFeeds`)
 - **Depends on:** T3
@@ -250,9 +250,18 @@ y con `urls: []` devuelve `[]` sin lanzar.
 
 **Decision log:**
 
-- *(empty until this task is worked on)*
+- Implementación trivial: `Promise.all(urls.map(fetchFeed)).then(r =>
+  r.flat())`. La resiliencia por-feed (una URL que falla no afecta a
+  las demás) ya la garantiza `fetchFeed` (T3), que nunca rechaza —
+  `fetchAllFeeds` no necesita su propio manejo de error, solo
+  combinar resultados que ya vienen saneados.
+- `urls: []` no necesitó caso especial: `Promise.all([])` resuelve
+  `[]`, y `[].flat()` es `[]`.
 
-**Outcome:** *(fill in when Done)*
+**Outcome:** `fetchAllFeeds` agregado a `src/sources/rss.ts`. `npm run
+typecheck` y `npm test` pasan (15 tests verdes en total, 2 nuevos de
+`rss.fetchAll.test.ts`: combinación aplanada ignorando el feed que
+falla, y `urls: []` → `[]`).
 
 ### T5 — `renderBriefing`: orden, límite N y HTML por ítem
 
