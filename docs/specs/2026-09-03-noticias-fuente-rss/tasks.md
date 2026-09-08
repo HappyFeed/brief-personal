@@ -36,7 +36,7 @@ harness de test todavía.
 - [x] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
 - [x] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
 - [x] **T5** — `renderBriefing`: orden, límite N y HTML por ítem
-- [ ] **T6** — Servidor HTTP + orquestación de arranque
+- [x] **T6** — Servidor HTTP + orquestación de arranque
 
 ## Requirements coverage
 
@@ -316,7 +316,7 @@ mensaje de "no hay noticias").
 
 ### T6 — Servidor HTTP + orquestación de arranque
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Traces to:** 4.1, 4.2, 4.3, 4.4 · design.md `src/server.ts`,
   `src/index.ts`
 - **Depends on:** T1, T4, T5
@@ -354,9 +354,56 @@ generado, y al arrancar con éxito se imprime la URL local por consola.
 
 **Decision log:**
 
-- *(empty until this task is worked on)*
+- El Node instalado en este entorno es v20.19.0, que **no** tiene
+  soporte nativo para ejecutar TypeScript (`--experimental-strip-types`
+  recién existe desde Node 22.6, y sin flag desde 23.6). La decisión
+  previa del plan ("soporte nativo de Node para ejecutar TypeScript")
+  no es viable tal cual en esta versión real de Node — se documenta acá
+  como corrección de esa suposición.
+- Alternativa elegida sin agregar dependencias nuevas: compilar con
+  `tsc` (ya devDependency desde T1) a JS plano y correrlo con `node`
+  llano. Se agregó `tsconfig.build.json` (extiende `tsconfig.json`,
+  `module`/`moduleResolution: NodeNext`, `outDir: dist`, excluye
+  `*.test.ts`) y scripts `build` (`tsc -p tsconfig.build.json`) y
+  `start` (`npm run build && node dist/index.js`) en `package.json`.
+  `dist/` ya estaba en `.gitignore` desde el scaffolding inicial del
+  repo.
+- `NodeNext` exige extensión `.js` en imports relativos (aunque el
+  archivo fuente sea `.ts`, por convención de Node ESM+TS): se ajustó
+  el único import relativo cruzado entre módulos de runtime
+  (`src/format/html.ts` → `'../sources/rss.js'`) y los nuevos
+  `src/index.ts`/`src/server.ts` ya se escribieron con esa convención.
+  El `tsconfig.json` principal (usado por `typecheck` y por vitest)
+  sigue con `moduleResolution: bundler`, que acepta la misma extensión
+  `.js` sin romper nada — no hizo falta tocar los tests.
+- `src/server.ts` expone `startServer(html, port)`, crea el servidor
+  `node:http`, responde `200`/`text/html` con el `html` recibido ante
+  cualquier request (no solo `/`, ya que el Objective no distingue
+  rutas) y devuelve la instancia sin loguear nada él mismo — el log de
+  la URL queda en `index.ts`, escuchando el evento `listening` del
+  server devuelto, tal como pedía el plan.
+- `src/index.ts` es `await` de nivel superior (top-level await, válido
+  con `module: NodeNext`/ESM) para poder esperar `fetchAllFeeds` antes
+  de llamar a `renderBriefing`/`startServer`, sin envolver todo en una
+  función async innecesaria.
+- `task-verifier` notó que el header `Content-Type` no declaraba
+  `charset=utf-8` (solo estaba en el `&lt;meta charset&gt;` del HTML).
+  Dado que este es un briefing en español (títulos/descripciones con
+  tildes/eñes son el caso normal, no el excepcional, una vez que
+  `FEEDS` tenga URLs reales), se corrigió a
+  `'Content-Type': 'text/html; charset=utf-8'` en `src/server.ts` para
+  evitar que el browser adivine mal la codificación.
 
-**Outcome:** *(fill in when Done)*
+**Outcome:** `src/server.ts` (`startServer`) y `src/index.ts` (entry
+point) agregados; `package.json` con scripts `build`/`start`;
+`tsconfig.build.json` nuevo para la compilación a `dist/`. `npm run
+typecheck` y `npm test` pasan sin regresión (20/20 tests, sin cambios
+en la suite). Chequeo manual: `npm run build` compila sin errores;
+`node dist/index.js` imprime `Briefing disponible en
+http://localhost:3000` por consola y una request a `/` devuelve
+`200`/`text/html` con el HTML de `renderBriefing` (mensaje de "no hay
+noticias" porque `FEEDS` está vacío por defecto, como se espera dado
+T1).
 
 ---
 

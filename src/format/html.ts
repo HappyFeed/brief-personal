@@ -1,4 +1,4 @@
-import type { NewsItem } from '../sources/rss'
+import type { NewsItem } from '../sources/rss.js'
 
 function escapeHtml(text: string): string {
   return text
