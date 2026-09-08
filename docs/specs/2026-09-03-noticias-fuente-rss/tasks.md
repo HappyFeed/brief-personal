@@ -31,7 +31,7 @@ harness de test todavía.
 
 ## Task overview
 
-- [ ] **T1** — Scaffolding de proyecto + `config.ts`
+- [x] **T1** — Scaffolding de proyecto + `config.ts`
 - [ ] **T2** — `parseRssXml`: parseo puro de XML RSS
 - [ ] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
 - [ ] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
@@ -65,7 +65,7 @@ harness de test todavía.
 
 ### T1 — Scaffolding de proyecto + `config.ts`
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Traces to:** 1.1, 3.3 (valor por defecto de `MAX_ITEMS`), 4.4 (valor por defecto de `PORT`) · design.md Architecture (scaffolding), `src/config.ts`
 - **Depends on:** none
 
@@ -75,22 +75,36 @@ de test (`vitest`) funcionando, y `src/config.ts` expone `FEEDS`
 
 **TDD plan:**
 
-1. **Test (red):** crear `src/config.test.ts` que importe `FEEDS`,
-   `MAX_ITEMS`, `PORT` de `./config` y asserte `Array.isArray(FEEDS)`,
-   `MAX_ITEMS === 15`, `PORT === 3000`. Falla porque todavía no existe
-   `package.json` / `vitest.config.ts` / `src/config.ts`.
-2. **Implement (green):** crear `package.json` (scripts `typecheck` y
-   `test`, devDependencies `typescript` + `vitest`), `tsconfig.json`,
-   `vitest.config.ts`, y `src/config.ts` con
+1. **Setup (prerequisite, no es TDD en sí):** crear `package.json`
+   (scripts `typecheck` → `tsc --noEmit`, `test` → `vitest run`,
+   devDependencies `typescript` + `vitest`), `tsconfig.json` y
+   `vitest.config.ts` mínimos, y correr `npm install`. Sin esto no hay
+   forma de ejecutar ningún test todavía — es un prerequisito de
+   entorno, no un comportamiento a testear.
+2. **Test (red):** con el harness ya instalado, crear
+   `src/config.test.ts` que importe `FEEDS`, `MAX_ITEMS`, `PORT` de
+   `./config` y asserte `Array.isArray(FEEDS)`, `MAX_ITEMS === 15`,
+   `PORT === 3000`. `npm test` falla porque `src/config.ts` todavía no
+   existe.
+3. **Implement (green):** crear `src/config.ts` con
    `export const FEEDS: string[] = []`, `export const MAX_ITEMS = 15`,
    `export const PORT = 3000`.
-3. **Verify:** `npm install`, `npm run typecheck` && `npm test`.
+4. **Verify:** `npm run typecheck` && `npm test`.
 
 **Decision log:** *(append-only, newest entry at the bottom)*
 
-- *(empty until this task is worked on)*
+- El plan no fijaba ESM vs CommonJS ni el `target`/`module` de
+  `tsconfig.json`. Elegí ESM (`"type": "module"` en `package.json`,
+  `target`/`module: ES2022`, `moduleResolution: bundler`) porque
+  `design.md` usa `fetch` nativo y `node:http` sin mención de
+  compatibilidad CommonJS, y es el default recomendado para proyectos
+  Node nuevos.
+- `vitest.config.ts` con `environment: 'node'` explícito (no jsdom):
+  no hay código de browser en este proyecto.
 
-**Outcome:** *(fill in when Done)*
+**Outcome:** Scaffolding creado (`package.json`, `tsconfig.json`,
+`vitest.config.ts`) y `src/config.ts` con `FEEDS`/`MAX_ITEMS`/`PORT`.
+`npm run typecheck` y `npm test` pasan (3 tests verdes).
 
 ### T2 — `parseRssXml`: parseo puro de XML RSS
 
@@ -265,12 +279,18 @@ generado, y al arrancar con éxito se imprime la URL local por consola.
    entry point sin exports que lee `config`, llama
    `fetchAllFeeds(config.FEEDS)` → `renderBriefing(items, config.MAX_ITEMS)`
    → `startServer(html, config.PORT)`, y en el evento `listening` del
-   server imprime la URL local por consola.
+   server imprime la URL local por consola. Agregar a `package.json`
+   (creado en T1) un script `start` que ejecute `src/index.ts`
+   directamente sin agregar dependencias nuevas (ej. soporte nativo de
+   Node para ejecutar TypeScript, no `ts-node`/`tsx`) — es lo mínimo
+   necesario para poder levantar el entry point de punta a punta en el
+   chequeo manual del paso siguiente; el comando exacto es una decisión
+   de implementación a anotar en el Decision log.
 3. **Verify:** `npm run typecheck` && `npm test` (sin regresión en los
-   tests existentes); chequeo manual: levantar el entry point
-   localmente y hacer una request a `/` para confirmar que devuelve el
-   HTML del briefing y que la consola imprimió la URL local al
-   arrancar.
+   tests existentes); chequeo manual: correr `npm start` (o el comando
+   equivalente definido en el paso anterior) y hacer una request a `/`
+   para confirmar que devuelve el HTML del briefing y que la consola
+   imprimió la URL local al arrancar.
 
 **Decision log:**
 
