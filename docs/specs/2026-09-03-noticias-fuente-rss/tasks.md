@@ -35,7 +35,7 @@ harness de test todavía.
 - [x] **T2** — `parseRssXml`: parseo puro de XML RSS
 - [x] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
 - [x] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
-- [ ] **T5** — `renderBriefing`: orden, límite N y HTML por ítem
+- [x] **T5** — `renderBriefing`: orden, límite N y HTML por ítem
 - [ ] **T6** — Servidor HTTP + orquestación de arranque
 
 ## Requirements coverage
@@ -265,7 +265,7 @@ falla, y `urls: []` → `[]`).
 
 ### T5 — `renderBriefing`: orden, límite N y HTML por ítem
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Traces to:** 1.2 (parcial), 3.2, 3.3, 3.4, 3.5 · design.md
   `src/format/html.ts` (`renderBriefing`)
 - **Depends on:** T2
@@ -294,9 +294,25 @@ noticias" en vez de una página vacía.
 
 **Decision log:**
 
-- *(empty until this task is worked on)*
+- Orden por `pubDate` descendente usando `new Date(pubDate).getTime()`
+  como comparador; un `pubDate` no parseable por `Date` da `NaN` y
+  queda con orden indefinido, tal como ya lo anotaba el Open Question
+  de `design.md` — no se agregó manejo especial, consistente con esa
+  decisión ya tomada.
+- Se escapan `title`/`link`/`pubDate`/`description` con un helper
+  mínimo (`&`, `<`, `>`, `"`) antes de interpolarlos en el HTML, para
+  que un feed con esos caracteres (ej. títulos con `&` o `<`) no rompa
+  el markup. No estaba explícito en el design, pero es necesario para
+  que "sin romper el HTML" (Objective) sea cierto con datos reales.
+- El mensaje de "no hay noticias" se compara en los tests en
+  minúsculas (`toLowerCase()`) para no acoplar el test a la
+  capitalización exacta del texto.
 
-**Outcome:** *(fill in when Done)*
+**Outcome:** `renderBriefing` agregado en `src/format/html.ts`. `npm
+run typecheck` y `npm test` pasan (20 tests verdes en total, 5 nuevos
+de `html.test.ts`: orden descendente, límite N, link+fecha+descripción
+por ítem, `description: ""` sin romper el HTML, y lista vacía con
+mensaje de "no hay noticias").
 
 ### T6 — Servidor HTTP + orquestación de arranque
 
