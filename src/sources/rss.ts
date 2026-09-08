@@ -37,3 +37,29 @@ export function parseRssXml(xml: string): NewsItem[] {
     return []
   }
 }
+
+function looksLikeRssXml(body: string): boolean {
+  return /<\?xml|<rss[\s>]|<feed[\s>]/i.test(body)
+}
+
+export async function fetchFeed(url: string): Promise<NewsItem[]> {
+  try {
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      console.error(`fetchFeed: respuesta no exitosa (status ${response.status}) descargando ${url}`)
+      return []
+    }
+
+    const body = await response.text()
+    if (!looksLikeRssXml(body)) {
+      console.error(`fetchFeed: contenido descargado de ${url} no parece RSS/XML`)
+      return []
+    }
+
+    return parseRssXml(body)
+  } catch (error) {
+    console.error(`fetchFeed: error descargando ${url}`, error)
+    return []
+  }
+}

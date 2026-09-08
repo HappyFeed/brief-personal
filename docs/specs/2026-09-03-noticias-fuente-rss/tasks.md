@@ -33,7 +33,7 @@ harness de test todavía.
 
 - [x] **T1** — Scaffolding de proyecto + `config.ts`
 - [x] **T2** — `parseRssXml`: parseo puro de XML RSS
-- [ ] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
+- [x] **T3** — `fetchFeed`: descarga por HTTP que nunca rechaza
 - [ ] **T4** — `fetchAllFeeds`: combinación de múltiples feeds
 - [ ] **T5** — `renderBriefing`: orden, límite N y HTML por ítem
 - [ ] **T6** — Servidor HTTP + orquestación de arranque
@@ -151,7 +151,7 @@ nuevos de `rss.test.ts`).
 
 ### T3 — `fetchFeed`: descarga por HTTP que nunca rechaza
 
-- **Status:** `[ ]`
+- **Status:** `[x]`
 - **Traces to:** 2.1, 2.4, 2.5 · design.md `src/sources/rss.ts`
   (`fetchFeed`)
 - **Depends on:** T2
@@ -197,9 +197,33 @@ loguea).
 
 **Decision log:**
 
-- *(empty until this task is worked on)*
+- Heurístico de "¿parece RSS/XML?" elegido: `/<\?xml|<rss[\s>]|<feed[\s>]/i` sobre
+  el body — cubre declaración XML, tag `<rss>` (RSS 2.0) y `<feed>`
+  (Atom, por si algún feed configurado terminara siendo Atom), sin
+  parsear de verdad. Un HTML de error típico (`<html>...`) no matchea
+  ninguna de las tres, así que cae en el caso (e) de contenido
+  inválido como se esperaba.
+- Faltaban los tipos de Node (`fetch`, `console`) porque `tsconfig.json`
+  no tenía `lib: dom` ni tipos de Node — se agregó `@types/node` como
+  devDependency y `"types": ["node"]` en `tsconfig.json` en vez de
+  `lib: ["dom"]`, para tipar el `fetch`/`console` globales de Node sin
+  traer de encima tipos de browser que no aplican a este proyecto
+  (servidor, sin UI).
+- El tipo del `response` de `fetchFeed` se infiere del propio `fetch`
+  en vez de anotarse a mano, ya que no se incluyó `lib: dom`; el uso
+  real (`ok`, `status`, `text()`) queda cubierto igual.
+- `task-verifier` señaló que el `try/catch` original solo envolvía el
+  `fetch()` inicial, dejando `response.text()` fuera: una descarga que
+  falla a mitad de body (conexión cortada) hubiera rechazado la
+  promesa, contradiciendo el Objective ("nunca rechaza"). Se movió
+  todo el cuerpo de la función (incluyendo `response.text()` y el
+  `parseRssXml` final) dentro de un único `try/catch`, y se agregó un
+  sexto caso de test para ese escenario.
 
-**Outcome:** *(fill in when Done)*
+**Outcome:** `fetchFeed` agregado a `src/sources/rss.ts`. `npm run
+typecheck` y `npm test` pasan (13 tests verdes en total, 6 nuevos de
+`rss.fetch.test.ts`, mockeando `global.fetch` con `vi.stubGlobal`),
+incluyendo el caso de `response.text()` rechazando.
 
 ### T4 — `fetchAllFeeds`: combinación de múltiples feeds
 
