@@ -86,12 +86,14 @@ if (!ready || !ready.ready) {
   return { slug, status: 'blocked', reason: ready?.blockReason ?? 'scout failed' }
 }
 
+let bootstrapped = false
 if (ready.needsBootstrap) {
   phase('Bootstrap')
   await agent(
     `Corré el modo bootstrap para el spec en ${specDir}: no existe todavía un tasks.md real. Seguí exactamente las instrucciones de tu definición de agente.`,
     { agentType: 'planner', label: 'bootstrap' },
   )
+  bootstrapped = true
 }
 
 const seen = new Set() // task IDs ya procesados en esta corrida (incluye splits/merges nuevos)
@@ -108,18 +110,46 @@ while (true) {
     break
   }
 
-  phase(`Worklist (lote ${round})`)
-  const worklist = await agent(
-    `Leé ${specDir}/tasks.md. Devolvé, en el orden en que aparecen en el documento, las tareas que NO están en Status [x] (Done): su id ("T3", "T3a", ...) y su campo "Depends on" tal cual está escrito (lista de ids, vacía si dice "none").`,
-    { agentType: 'Explore', schema: WORKLIST_SCHEMA, model: 'haiku', label: `worklist-r${round}` },
-  )
+  let worklist
+  try {
+    phase(`Worklist (lote ${round})`)
+    worklist = await agent(
+      `Leé ${specDir}/tasks.md. Devolvé, en el orden en que aparecen en el documento, las tareas que NO están en Status [x] (Done): su id ("T3", "T3a", ...) y su campo "Depends on" tal cual está escrito (lista de ids, vacía si dice "none").`,
+      { agentType: 'Explore', schema: WORKLIST_SCHEMA, model: 'haiku', label: `worklist-r${round}` },
+    )
+  } catch (err) {
+    haltReason = `el paso worklist del lote ${round} tiró un error: ${err?.message ?? err}`
+    log(`Error inesperado leyendo el worklist en el lote ${round} de ${slug}: ${err?.message ?? err}. Freno la corrida para no dejarla en un estado indefinido.`)
+    break
+  }
+
+  // Normalizamos cada entrada antes de confiar en su forma: el schema le
+  // pide al agente `id` string y `dependsOn` array, pero un agente puede
+  // devolver algo que no calza exacto (dependsOn null/string/ausente) y
+  // eso no puede tumbar el workflow entero con un TypeError sin reportar
+  // nada — mejor tratar esa entrada como "sin dependencias conocidas" y
+  // seguir.
+  const normalizedTasks = (worklist?.tasks ?? [])
+    .filter(t => t && typeof t.id === 'string' && t.id)
+    .map(t => ({ id: t.id, dependsOn: Array.isArray(t.dependsOn) ? t.dependsOn : [] }))
 
   // Iterar una tarea no le cambia el Status (sigue [ ] hasta la ejecución
   // real en TDD), así que el scout siempre la va a listar de nuevo: el
   // control de "ya se iteró en esta corrida" lo lleva `seen`, no el archivo.
-  const notYetIterated = (worklist?.tasks ?? []).filter(t => !seen.has(t.id))
+  const notYetIterated = normalizedTasks.filter(t => !seen.has(t.id))
 
   if (!notYetIterated.length) {
+    if (round === 1 && bootstrapped) {
+      // El bootstrap corrió pero tasks.md sigue sin tareas pendientes: puede
+      // ser que de verdad no haya nada que iterar, pero también puede ser
+      // que `planner` no haya escrito el archivo (p. ej. detectó progreso
+      // real y frenó, ver planner.md). No reportamos 'iterated' a ciegas —
+      // eso sería un éxito falso — sino que frenamos para que el resultado
+      // se revise antes de darlo por bueno.
+      haltReason = 'se corrió bootstrap pero el worklist post-bootstrap salió vacío; confirmar que tasks.md quedó escrito de verdad antes de asumir que no hay nada que iterar'
+      log(`Aviso: ${slug} corrió bootstrap pero ${specDir}/tasks.md no tiene tareas pendientes en la primera lectura post-bootstrap. Reviso manualmente antes de dar la corrida por terminada.`)
+      break
+    }
     log(`${slug}: no quedan tareas pendientes de iterar${round > 1 ? ` (${totalIterated} iteradas en ${round - 1} lote(s))` : ''}.`)
     break
   }
@@ -134,13 +164,20 @@ while (true) {
     log(`Aviso: dependencias inconsistentes o ciclo cerca de ${effectiveBatch[0]} en el lote ${round}; sigo de a una para no bloquear el loop.`)
   }
 
-  phase(`Iterar lote ${round}: ${effectiveBatch.join(', ')}`)
-  const proposals = (await parallel(
-    effectiveBatch.map(id => () => agent(
-      `Evaluá la tarea ${id} de ${specDir}/tasks.md, en modo tarea única y de SOLO LECTURA. Contexto acumulado de lotes anteriores de esta corrida (gaps sin asignar todavía, cambios estructurales previos): ${JSON.stringify(carryContext)}`,
-      { agentType: 'planner-iterate', schema: ITERATE_SCHEMA, label: id, phase: `Iterar ${id}` },
-    )),
-  )).filter(Boolean)
+  let proposals
+  try {
+    phase(`Iterar lote ${round}: ${effectiveBatch.join(', ')}`)
+    proposals = (await parallel(
+      effectiveBatch.map(id => () => agent(
+        `Evaluá la tarea ${id} de ${specDir}/tasks.md, en modo tarea única y de SOLO LECTURA. Contexto acumulado de lotes anteriores de esta corrida (gaps sin asignar todavía, cambios estructurales previos): ${JSON.stringify(carryContext)}`,
+        { agentType: 'planner-iterate', schema: ITERATE_SCHEMA, label: id, phase: `Iterar ${id}` },
+      )),
+    )).filter(Boolean)
+  } catch (err) {
+    haltReason = `el lote ${round} (${effectiveBatch.join(', ')}) tiró un error al iterar: ${err?.message ?? err}`
+    log(`Error inesperado iterando el lote ${round} de ${slug}: ${err?.message ?? err}. Freno la corrida para no dejarla en un estado indefinido.`)
+    break
+  }
 
   if (proposals.length < effectiveBatch.length) {
     log(`Aviso: ${effectiveBatch.length - proposals.length} de ${effectiveBatch.length} llamados del lote ${round} no devolvieron resultado válido.`)
@@ -151,11 +188,17 @@ while (true) {
     break
   }
 
-  phase(`Escribir lote ${round}`)
-  await agent(
-    `Aplicá este lote de propuestas a ${specDir}/tasks.md, manteniendo checklist y tabla de Requirements coverage consistentes: ${JSON.stringify(proposals)}`,
-    { agentType: 'tasks-writer', label: `write-r${round}` },
-  )
+  try {
+    phase(`Escribir lote ${round}`)
+    await agent(
+      `Aplicá este lote de propuestas a ${specDir}/tasks.md, manteniendo checklist y tabla de Requirements coverage consistentes: ${JSON.stringify(proposals)}`,
+      { agentType: 'tasks-writer', label: `write-r${round}` },
+    )
+  } catch (err) {
+    haltReason = `la escritura del lote ${round} tiró un error: ${err?.message ?? err}`
+    log(`Error inesperado escribiendo el lote ${round} de ${slug}: ${err?.message ?? err}. Las propuestas de este lote no quedaron aplicadas; freno la corrida.`)
+    break
+  }
 
   // Solo se marcan como iteradas las que de verdad devolvieron una
   // propuesta válida — una que falló vuelve a aparecer en el próximo

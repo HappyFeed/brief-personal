@@ -30,11 +30,28 @@ Paso 3).
 
 ## Paso 2 — Lanzar el workflow
 
-Corré `/plan-tasks` (o `ultracode: plan-tasks`, según cómo esté
-guardado en este entorno) pasando el `slug` como argumento — por
-ejemplo `slug: "2026-09-03-noticias-fuente-rss"`. Una sola invocación
-por corrida: el workflow hace bootstrap (si corresponde) y todo el
-loop de iteración internamente, no hace falta relanzarlo por tarea.
+`plan-tasks` es un **dynamic workflow** (`.claude/workflows/plan-tasks.js`),
+no una skill ni un slash command — no lo invoques como `/plan-tasks` ni
+como `ultracode: plan-tasks`. Se lanza con la herramienta **`Workflow`**,
+pasándole el path del script y el `slug` como `args`:
+
+```
+Workflow({
+  scriptPath: ".claude/workflows/plan-tasks.js",
+  args: { slug: "2026-09-03-noticias-fuente-rss" },
+})
+```
+
+Una sola invocación por corrida: el workflow hace bootstrap (si
+corresponde) y todo el loop de iteración internamente, no hace falta
+relanzarlo por tarea.
+
+**Si la herramienta `Workflow` no está disponible en este entorno**, no
+hay forma de replicar a mano el paralelismo + escritura serializada que
+hace el script (ver reglas del proyecto sobre no lanzar dos
+`planner`/`planner-iterate`/`tasks-writer` en simultáneo) — avisale al
+usuario que falta esa herramienta en vez de simular el workflow con
+agentes sueltos.
 
 ## Paso 3 — Interpretar el resultado
 
