@@ -7,6 +7,10 @@ dist/
 test-results/
 playwright-report/
 
+# Capturas/snapshots de sesiones interactivas del MCP de Playwright,
+# no son parte del proyecto
+.playwright-mcp/
+
 # Skills instaladas via skills-lock.json: se reinstalan desde ahi, no se versionan.
 # Si agregas otra skill vendorizada, sumala aca.
 .agents/skills/skill-creator/
