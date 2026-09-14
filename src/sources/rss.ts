@@ -11,15 +11,36 @@ function extractTag(itemXml: string, tag: string): string {
   return decodeCdataAndEntities(match[1].trim())
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  rsquo: '’',
+  lsquo: '‘',
+  rdquo: '”',
+  ldquo: '“',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+}
+
 function decodeCdataAndEntities(raw: string): string {
   const cdataMatch = raw.match(/^<!\[CDATA\[([\s\S]*)\]\]>$/)
   const text = cdataMatch ? cdataMatch[1] : raw
   return text
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-zA-Z]+);/g, (full, name) => NAMED_ENTITIES[name] ?? full)
     .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+}
+
+function stripHtmlTags(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export function parseRssXml(xml: string): NewsItem[] {
@@ -31,7 +52,7 @@ export function parseRssXml(xml: string): NewsItem[] {
       title: extractTag(itemXml, 'title'),
       link: extractTag(itemXml, 'link'),
       pubDate: extractTag(itemXml, 'pubDate'),
-      description: extractTag(itemXml, 'description'),
+      description: stripHtmlTags(extractTag(itemXml, 'description')),
     }))
   } catch {
     return []

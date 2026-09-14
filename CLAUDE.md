@@ -14,6 +14,7 @@ resumen legible. V1 sin LLM — solo junta y formatea datos.
 ```bash
 npm run typecheck   # tsc --noEmit
 npm test             # vitest run
+npm run test:e2e     # playwright test — E2E contra la interfaz servida (real, pega a los feeds configurados)
 ```
 
 ## Workflow de trabajo

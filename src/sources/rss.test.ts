@@ -31,6 +31,30 @@ const ITEM_WITHOUT_DESCRIPTION = `<?xml version="1.0"?>
   </channel>
 </rss>`
 
+const ITEM_WITH_HTML_ENTITIES = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title><![CDATA[Microsoft&#8217;s new &#8216;code of conduct&#8217;]]></title>
+      <link>https://example.com/entities</link>
+      <pubDate>Tue, 01 Sep 2026 10:00:00 GMT</pubDate>
+      <description><![CDATA[Deploys &mdash; slowly &hellip; &amp; carefully.]]></description>
+    </item>
+  </channel>
+</rss>`
+
+const ITEM_WITH_HTML_MARKUP_IN_DESCRIPTION = `<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>From Video to Data</title>
+      <link>https://example.com/markup</link>
+      <pubDate>Tue, 01 Sep 2026 10:00:00 GMT</pubDate>
+      <description><![CDATA[<p>A video looks simple.</p> <p>The post <a href="https://example.com">original</a> appeared first.</p>]]></description>
+    </item>
+  </channel>
+</rss>`
+
 describe('parseRssXml', () => {
   it('extrae título/link/pubDate/description de cada item, en el orden del XML', () => {
     const items = parseRssXml(WELL_FORMED_FEED)
@@ -70,5 +94,24 @@ describe('parseRssXml', () => {
 
   it('devuelve [] sin lanzar ante XML malformado', () => {
     expect(parseRssXml('esto no es XML ni RSS')).toEqual([])
+  })
+
+  it('decodifica entidades HTML numéricas y con nombre en título y descripción', () => {
+    const items = parseRssXml(ITEM_WITH_HTML_ENTITIES)
+
+    expect(items).toEqual([
+      {
+        title: 'Microsoft’s new ‘code of conduct’',
+        link: 'https://example.com/entities',
+        pubDate: 'Tue, 01 Sep 2026 10:00:00 GMT',
+        description: 'Deploys — slowly … & carefully.',
+      },
+    ])
+  })
+
+  it('quita tags HTML embebidos en la descripción, conservando el texto', () => {
+    const items = parseRssXml(ITEM_WITH_HTML_MARKUP_IN_DESCRIPTION)
+
+    expect(items[0].description).toBe('A video looks simple. The post original appeared first.')
   })
 })

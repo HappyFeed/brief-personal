@@ -3,6 +3,10 @@ node_modules/
 dist/
 .env
 
+# Artefactos de corridas de Playwright (test:e2e)
+test-results/
+playwright-report/
+
 # Skills instaladas via skills-lock.json: se reinstalan desde ahi, no se versionan.
 # Si agregas otra skill vendorizada, sumala aca.
 .agents/skills/skill-creator/
