@@ -74,4 +74,22 @@ describe('renderBriefing', () => {
 
     expect(html.toLowerCase()).toContain('no hay noticias')
   })
+
+  it('incluye una hoja de estilo embebida', () => {
+    const html = renderBriefing([], 15)
+
+    expect(html).toContain('<style>')
+  })
+
+  it('el header muestra la cantidad de noticias mostradas', () => {
+    const items = [
+      item({ title: 'First', pubDate: 'Wed, 02 Sep 2026 10:00:00 GMT' }),
+      item({ title: 'Second', pubDate: 'Tue, 01 Sep 2026 10:00:00 GMT' }),
+      item({ title: 'Third', pubDate: 'Mon, 31 Aug 2026 10:00:00 GMT' }),
+    ]
+
+    const html = renderBriefing(items, 2)
+
+    expect(html).toContain('2 noticias')
+  })
 })
