@@ -35,6 +35,15 @@ La etapa de "spec (docs/)" se resuelve con dos skills, en orden:
 Recién con las tres piezas del spec aprobadas (incluyendo la
 aprobación final de `tasks.md`) arranca "ejecución (TDD)".
 
+La etapa de "verificación" se resuelve invocando la skill
+`verify-implementation`: corre un loop e2e autónomo (`plan-test-cases`
+→ `generate-tests` → `healer`, contra la app real vía Playwright MCP)
+que confirma que la feature funciona de verdad en el navegador, no
+solo que sus tests unitarios pasan. Se dispara sola apenas la última
+tarea de un `tasks.md` pasa a `[x]` Done durante la ejecución — no
+hace falta que se la pida explícitamente — y también puede invocarse a
+pedido sobre cualquier spec ya implementado.
+
 ## Reglas
 
 - Una skill (fuente de datos) a la vez. No abrir frentes en paralelo —

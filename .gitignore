@@ -18,6 +18,10 @@ playwright-report/
 # Config local de sesion, no es parte del proyecto
 .claude/*
 
+# Excepcion: los permisos de MCP versionados del proyecto (distinto de
+# .claude/settings.local.json, que sigue sin versionarse).
+!.claude/settings.json
+
 # Excepcion: los subagentes de proyecto si se versionan (recomendado
 # por la doc de Claude Code para .claude/agents/).
 !.claude/agents
@@ -37,3 +41,7 @@ playwright-report/
 !.claude/skills/planning-tasks/**
 !.claude/skills/specify
 !.claude/skills/specify/**
+!.claude/skills/plan-test-cases
+!.claude/skills/plan-test-cases/**
+!.claude/skills/verify-implementation
+!.claude/skills/verify-implementation/**
