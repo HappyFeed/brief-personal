@@ -2,6 +2,7 @@
 node_modules/
 dist/
 .env
+.vercel
 
 # Artefactos de corridas de Playwright (test:e2e)
 test-results/
