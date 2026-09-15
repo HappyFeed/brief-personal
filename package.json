@@ -1,6 +1,7 @@
 {
   "name": "brief-personal",
   "version": "0.0.1",
+  "description": "Briefing diario personal: junta noticias de RSS y las entrega en un resumen HTML legible.",
   "private": true,
   "type": "module",
   "scripts": {
