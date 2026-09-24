@@ -161,7 +161,19 @@ Leé el veredicto del healer y ruteá:
 **Parás después de 3 vueltas** del ciclo `generate-tests`→`healer` sin
 llegar a `GREEN`. Reportá qué sigue fallando y por qué no converge — un
 loop autónomo que sigue dando vueltas sobre el mismo fallo quema
-tokens, no encuentra bugs. También parás y preguntás si el fix que
+tokens, no encuentra bugs.
+
+**Presupuesto por corrida.** Además del tope de vueltas, parás si la
+corrida pasa **300k tokens de subagentes** o **10 minutos** sumados.
+Llevá la cuenta con el bloque `<usage>` que trae el aviso de cada
+subagente terminado (`subagent_tokens`, `duration_ms`), acumulado desde
+el Paso 2. Chequealo antes de lanzar cada subagente: si lanzarlo
+excedería el presupuesto, no lo lanzás y reportás en qué vuelta
+quedaste, cuánto se consumió y el último veredicto del `healer`.
+Referencia: una corrida real de 2 vueltas consumió ~154k tokens y ~4,8
+min, así que el tope deja margen de sobra.
+
+También parás y preguntás si el fix que
 implica el healer cambiaría `requirements.md` o `design.md`: cambiar el
 spec es decisión del usuario, y es de `/specify`, no de este loop.
 
