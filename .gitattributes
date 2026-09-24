@@ -1,0 +1,2 @@
+# Los workflows de Claude deben tener saltos de línea LF: con CRLF el harness rechaza el script
+.claude/workflows/*.js text eol=lf
