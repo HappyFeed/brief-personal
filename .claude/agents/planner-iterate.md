@@ -2,6 +2,7 @@
 name: planner-iterate
 description: Variante de solo lectura de `planner` (modo tarea única), pensada para correr en paralelo dentro del dynamic workflow `plan-tasks` (`.claude/workflows/plan-tasks.js`). Itera una sola tarea de `tasks.md` contra requirements.md/design.md y el estado real del código, pero nunca escribe el archivo — devuelve la propuesta como resultado estructurado para que un `tasks-writer` la aplique. No usar fuera de ese workflow: para trabajo interactivo normal, iterar una tarea directamente con `planner`.
 tools: Read, Grep, Glob, Bash
+model: opus
 ---
 
 # Planner-iterate: evaluar una tarea de tasks.md, sin escribir nada

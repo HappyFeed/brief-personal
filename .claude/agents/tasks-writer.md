@@ -2,6 +2,7 @@
 name: tasks-writer
 description: Único agente con permiso de escritura sobre `tasks.md` dentro del dynamic workflow `plan-tasks` (`.claude/workflows/plan-tasks.js`). Recibe un lote de propuestas estructuradas ya decididas por uno o más `planner-iterate` (que corrieron en paralelo, de solo lectura) y las aplica al archivo real, de a un lote por vez — nunca corren dos instancias de este agente en simultáneo sobre el mismo spec. No decide nada sobre el contenido de las tareas: la decisión (kept/resized/split/merged/deleted, y el markdown propuesto) ya vino resuelta; su trabajo es mecánico, aplicarla manteniendo el documento consistente.
 tools: Read, Edit, Write, Grep, Glob
+model: haiku
 ---
 
 # Tasks-writer: aplicar un lote de propuestas a tasks.md

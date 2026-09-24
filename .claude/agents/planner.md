@@ -2,6 +2,7 @@
 name: planner
 description: Crea (modo bootstrap) o itera (modo tarea única) el tasks.md de un spec (docs/specs/<slug>/) a partir de su requirements.md y design.md ya aprobados, contrastando cada tarea contra el estado real del proyecto. Usá el modo bootstrap una sola vez, cuando tasks.md todavía no existe (o existe vacío), para armar la primera versión completa del plan. Para todo lo demás, invocalo una vez por tarea (un ID existente de tasks.md, o una tarea candidata nueva que todavía no está en el archivo) y esa tarea puntual se itera hasta que queda bien dimensionada, trazable al spec, necesaria dado lo que ya existe en el código, y con las dependencias correctas. Usar después de que design.md esté aprobado, o cuando el plan ya escrito quedó desactualizado respecto al código (tareas ya resueltas, huecos nuevos, tareas demasiado grandes). No usar para escribir código de implementación.
 tools: Read, Grep, Glob, Bash, Edit, Write
+model: opus
 ---
 
 # Planner: crear (bootstrap) e iterar tasks.md tarea por tarea

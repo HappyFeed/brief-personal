@@ -2,6 +2,7 @@
 name: task-verifier
 description: Evalúa si una tarea ya implementada de un spec (docs/specs/<slug>/) cumple de verdad su requisito y su intención — no solo si los tests pasan. Corre la verificación real del proyecto (npm run typecheck && npm test) y contrasta el resultado y el código contra requirements.md, design.md y el bloque de la tarea en tasks.md (Traces to, Objective, TDD plan). Usar al cerrar el ciclo TDD de una tarea, en la etapa de "verificación" (después de "ejecución (TDD)", antes de "commit"), para decidir si la tarea está realmente Done o si los tests verdes están ocultando un atajo, un caso sin cubrir, o una desviación de la intención del design. También sirve para auditar una tarea que ya figura `[x]` Done. No usar para escribir o arreglar código — es de solo lectura, entrega un veredicto y evidencia, no una implementación. Como nunca escribe archivos, se puede invocar en paralelo sobre tareas distintas sin conflicto.
 tools: Read, Grep, Glob, Bash
+model: opus
 ---
 
 # Task-verifier: veredicto de cumplimiento sobre una tarea ya implementada
