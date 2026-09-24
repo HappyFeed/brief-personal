@@ -178,7 +178,7 @@ implica el healer cambiaría `requirements.md` o `design.md`: cambiar el
 spec es decisión del usuario, y es de `/specify`, no de este loop.
 
 **Al terminar el loop, por cualquier motivo** (`GREEN`, tope de
-vueltas, `BLOCKED`, o `CODE DEFECT` que devuelve el control a
+vueltas o de presupuesto, `BLOCKED`, o `CODE DEFECT` que devuelve el control a
 ejecución), apagá el proceso de `npm start` que arrancaste en el Paso
 1 — no lo dejes huérfano.
 
